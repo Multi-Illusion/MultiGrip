@@ -43,4 +43,15 @@ pub mod display {
     }
 }
 
-// pub mod key
+pub mod key {
+    use embassy_stm32::peripherals;
+    pub const SCAN_INTV: u64 = 100;
+
+    pub use peripherals::PF2 as UP_PIN;
+    pub use peripherals::PF1 as PRESS_PIN;
+    pub use peripherals::PF0 as DOWN_PIN;
+
+    pub use peripherals::EXTI2 as UP_EXTI;
+    pub use peripherals::EXTI1 as PRESS_EXTI;
+    pub use peripherals::EXTI0 as DOWN_EXTI;
+}
