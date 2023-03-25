@@ -1,0 +1,102 @@
+import { Theme } from "theme.slint";
+
+export component Menu inherits Rectangle {
+
+    width: Theme.window-width;
+    height: Theme.window-height;
+    background: transparent;
+
+    in-out property <int> selected-index;
+    in property <int> count: 0;
+    private property <length> center-y: (root.height - Theme.menu-item-size) / 2 - Theme.menu-conveyer-y-offset;
+    out property <bool> is-start: selected-index == 0;
+    out property <bool> is-end: selected-index == (count - 1);
+
+    callback move-down();
+    callback move-up();
+    callback reset();
+
+    move-up => {
+        root.selected-index = min(root.selected-index + 1, root.count - 1);
+    }
+
+    move-down => {
+        root.selected-index = max(root.selected-index - 1, 0);
+    }
+
+    reset => {
+        root.selected-index = 0;
+    }
+       
+    Flickable {
+        viewport-y: root.center-y - root.selected-index * (Theme.menu-item-size + Theme.menu-conveyer-spacing);
+
+        animate viewport-y { duration: Theme.duration-regular; easing: ease-in; }
+    
+        VerticalLayout {
+            spacing: Theme.menu-conveyer-spacing;
+
+            @children
+        }
+    }
+}
+
+export component Item inherits VerticalLayout {
+
+    height: Theme.menu-item-size;
+
+    in property <string> label-text: "";
+    in property <bool> is-selected: false;
+    in property <image> image-source <=> image.source;
+
+    states [
+        selected when root.is-selected : {
+            label.visible: true;
+            height: Theme.menu-selected-item-size + Theme.menu-font-size;
+        }
+    ]
+
+    animate height { duration: Theme.duration-regular; easing: ease-in; }
+
+    // Item image Rect
+    image-wrap := Rectangle {
+
+        x: (root.width - self.width)/2;
+        border-radius: Theme.menu-item-radius-regular;
+        background: Theme.menu-item-background-color;
+        width: Theme.menu-item-size;
+        height: Theme.menu-item-size;
+
+        image := Image {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 80%;
+            height: 80%;
+            colorize: Theme.menu-item-foreground-color;
+    
+            animate colorize { duration: Theme.duration-fast; }
+        }
+
+        states [ 
+            selected when root.is-selected : {
+                background: Theme.menu-selected-item-background-color;
+                image.colorize: Theme.menu-selected-item-foreground-color;
+                width: Theme.menu-selected-item-size;
+                height: Theme.menu-selected-item-size;
+            }
+        ]
+        animate width { duration: Theme.duration-regular; easing: ease-in; }
+        animate height { duration: Theme.duration-regular; easing: ease-in; }
+        animate background { duration: Theme.duration-fast; }
+    }
+
+    // Item label text
+    label := Text {
+        x: (root.width - self.width) / 2;
+        text <=> root.label-text;
+        visible: false;
+        color: Theme.menu-item-label-color;
+        horizontal-alignment: center;
+        font-size: Theme.menu-font-size;
+    }
+}
