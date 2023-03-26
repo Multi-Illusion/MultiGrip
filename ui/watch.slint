@@ -1,0 +1,41 @@
+import { Theme } from "theme.slint";
+
+export component WatchFace inherits Rectangle {
+    
+    width: Theme.window-width;
+    height: Theme.window-height;
+    background: black;
+
+    out property <length> date-font-size: 43px;
+    out property <length> time-font-size: 43px;
+    out property <color> font-color: white;
+
+    in-out property <int> yt: 0;
+    in-out property <int> yu: 0;
+    in-out property <int> mot: 0;
+    in-out property <int> mou: 0;
+    in-out property <int> dt: 0;
+    in-out property <int> du: 0;
+
+    in-out property <int> ht: 0;
+    in-out property <int> hu: 0;
+    in-out property <int> mnt: 0;
+    in-out property <int> mnu: 0;
+    in-out property <int> st: 0;
+    in-out property <int> su: 0;
+
+    VerticalLayout { 
+        date-text := Text {
+            text: yt + "" + yu + ":" + mot + "" + mou + ":" + dt + "" + du;
+            color: font-color;
+            font-size: date-font-size;
+        }
+    
+        time-text := Text {
+            text: ht + "" + hu + ":" + mnt + "" + mnu + ":" + st + "" + su;
+            color: font-color;
+            font-size: time-font-size;
+        }
+    }
+
+}

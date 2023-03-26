@@ -1,0 +1,121 @@
+import { Menu, Item } from "menu.slint";
+import { WatchFace } from "watch.slint";
+import { Theme } from "theme.slint";
+
+export component MultiGripWindow inherits Window {
+
+    width: Theme.window-width;
+    height: Theme.window-height;
+    background: Theme.window-background;
+
+    private property<[{ title: string, image: image}]> navigation-items: [
+        
+    ];
+    in-out property <int> menu-si: 0;
+    in-out property <int> window-si-x: 0;
+    in-out property <int> window-si-y: 0;
+
+    private property <bool> home-active: window-si-x == 0 && window-si-y == 0;
+    private property <bool> menu-active: window-si-x == 0 && window-si-y == 1;
+    private property <bool> fcn-active: window-si-x == 1 && window-si-y == 1;
+
+    callback trigger-up-key;
+    callback trigger-down-key;
+    callback trigger-press-key;
+    callback switch-home-page;
+    callback switch-menu-page;
+    callback switch-fcn-page;
+
+    switch-home-page => {
+        window-si-x = 0;
+        window-si-y = 0;
+    }
+    switch-menu-page => {
+        window-si-x = 0;
+        window-si-y = 1;
+    }
+    switch-fcn-page => {
+        window-si-x = 1;
+        window-si-y = 1;
+    }
+
+    trigger-up-key => { 
+        if (home-active) {
+            switch-menu-page();
+        }
+        else if (menu-active) {
+            if (menu-page.is-end) {
+                switch-home-page();
+                menu-page.reset();
+            }
+            else {
+                menu-page.move-up();
+            }
+        }
+        else if (fcn-active) {
+            switch-menu-page();
+        }
+    }
+
+    trigger-down-key => { 
+        if (home-active) {
+        }
+        else if (menu-active) {
+            if (menu-page.is-start) {
+                switch-home-page();
+            }
+            else {
+                menu-page.move-down();
+            }
+        }
+        else if (fcn-active) {
+        }
+    }
+
+    trigger-press-key => { 
+        if (home-active) {
+        }
+        else if (menu-active) {
+            switch-fcn-page();
+        }
+        else if (fcn-active) {
+        }
+    }
+
+    Flickable { 
+        viewport-x: -(Theme.window-width * window-si-x);
+        viewport-y: -(Theme.window-height * window-si-y);
+
+        animate viewport-x { duration: Theme.duration-regular; easing: ease-in; }
+        animate viewport-y { duration: Theme.duration-regular; easing: ease-in; }
+
+
+        GridLayout {
+            home-page := WatchFace {
+            }
+
+            menu-page := Menu {
+                col: 0;
+                row: 1;
+                count: root.navigation-items.length;
+                selected-index <=> root.menu-si;
+               
+                for item[index] in root.navigation-items: Item {
+                    is-selected: index == root.menu-si;
+                    label-text: item.title;
+                    image-source: item.image;
+                    x: (root.width - self.width) / 2;
+                }  
+            }
+
+            fcn-page := Rectangle {
+                col: 1;
+                row: 1;
+                width: Theme.window-width;
+                height: Theme.window-height;
+                background: white;
+            }
+        }
+    }
+
+}
