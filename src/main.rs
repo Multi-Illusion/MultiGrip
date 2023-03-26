@@ -54,7 +54,7 @@ static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 static EXECUTOR_KEY: InterruptExecutor = InterruptExecutor::new();
-static KEY_SIGAL: Signal<CriticalSectionRawMutex, event::KeyEvent> = Signal::new();
+static KEY_SIGAL: Signal<CriticalSectionRawMutex, KeyEvent> = Signal::new();
 
 
 #[embassy_executor::main]
@@ -86,9 +86,7 @@ async fn main(spawner: Spawner) {
 
     let mut led = Output::new(p.PB7, Level::Low, Speed::Low);
     loop {
-        led.set_high();
-        Timer::after(Duration::from_millis(200)).await;
-        led.set_low();
+        led.toggle();
         Timer::after(Duration::from_millis(200)).await;
     }
 
@@ -138,7 +136,7 @@ async fn display_task(
         WrapPlatform { window: window.clone() }
     )).unwrap();
     
-    let ui = AppWindow::new();
+    let ui = MultiGripWindow::new();
 
     let mut pixel_buffer = [DoubleU8Pixel(0,0); DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
