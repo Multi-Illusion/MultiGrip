@@ -165,7 +165,7 @@ async fn display_task(
             }
         }
         slint::platform::update_timers_and_animations();
-        window.draw_if_needed(|renderer| {
+        if window.draw_if_needed(|renderer| {
             renderer.render(&mut pixel_buffer, DISPLAY_WIDTH);
         }) {
             display.fill_continuous(&screen_area, buffer_u8_slice).await;
