@@ -25,6 +25,9 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 embedded-graphics = "0.7"
 
+max3010x = "0.1.0"
+mpu6050 = "0.1.6"
+
 [profile.dev]
 opt-level = "s"
 

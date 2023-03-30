@@ -24,6 +24,8 @@ export component WatchFace inherits Rectangle {
     in-out property <int> st: 0;
     in-out property <int> su: 0;
 
+    in-out property <int> heart-rate: 0;
+
     VerticalLayout { 
         date-text := Text {
             text: yt + "" + yu + ":" + mot + "" + mou + ":" + dt + "" + du;
@@ -35,6 +37,12 @@ export component WatchFace inherits Rectangle {
             text: ht + "" + hu + ":" + mnt + "" + mnu + ":" + st + "" + su;
             color: font-color;
             font-size: time-font-size;
+        }
+
+        data-text := Text {
+            text: heart-rate;
+            color: font-color;
+            font-size: 30px;
         }
     }
 

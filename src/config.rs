@@ -5,7 +5,7 @@ pub const DISPLAY_HEIGHT: usize = 320;
 pub const DISPLAY_WIDTH_OFFSET: usize = 34;
 pub const DISPLAY_HEIGHT_OFFSET: usize = 0;
 
-pub const HEAP_SIZE: usize = 50 * 1024;
+pub const HEAP_SIZE: usize = 30 * 1024;
 
 pub fn rcc_init() -> embassy_stm32::Config {
     let mut config = embassy_stm32::Config::default();
@@ -54,4 +54,20 @@ pub mod key {
     pub use peripherals::EXTI2 as UP_EXTI;
     pub use peripherals::EXTI1 as PRESS_EXTI;
     pub use peripherals::EXTI0 as DOWN_EXTI;
+}
+
+pub mod max30102_config {
+    use embassy_stm32::peripherals;
+
+    pub use peripherals::I2C1 as I2C;
+    pub use peripherals::PB9 as SDA_PIN;
+    pub use peripherals::PB8 as SCL_PIN;
+}
+
+pub mod mpu6050_config {
+    use embassy_stm32::peripherals;
+
+    pub use peripherals::I2C2 as I2C;
+    pub use peripherals::PB11 as SDA_PIN;
+    pub use peripherals::PB10 as SCL_PIN;
 }

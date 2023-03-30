@@ -9,15 +9,21 @@ export component MultiGripWindow inherits Window {
     background: Theme.window-background;
 
     private property<[{ title: string, image: image}]> navigation-items: [
-        
+        { title: "Sports", image: @image-url("svg/settings_black.svg") },
+        { title: "Weather", image: @image-url("svg/home_black.svg") },
+        { title: "Timer", image: @image-url("svg/info_black.svg") },
+        { title: "Settings", image: @image-url("svg/settings_black.svg") },
+        { title: "Bluetooth", image: @image-url("svg/home_black.svg") },
+        { title: "About", image: @image-url("svg/info_black.svg") },
     ];
-    in-out property <int> menu-si: 0;
-    in-out property <int> window-si-x: 0;
-    in-out property <int> window-si-y: 0;
-
+    private property <int> menu-si: 0;
+    private property <int> window-si-x: 0;
+    private property <int> window-si-y: 0;
     private property <bool> home-active: window-si-x == 0 && window-si-y == 0;
     private property <bool> menu-active: window-si-x == 0 && window-si-y == 1;
     private property <bool> fcn-active: window-si-x == 1 && window-si-y == 1;
+
+    in-out property <int> heart-rate <=> home-page.heart-rate;
 
     callback trigger-up-key;
     callback trigger-down-key;

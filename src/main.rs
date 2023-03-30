@@ -4,7 +4,7 @@
 
 extern crate alloc;
 use core::mem;
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec};
 use alloc_cortex_m::CortexMHeap;
 use {defmt_rtt as _, panic_probe as _};
 use cortex_m::peripheral::NVIC;
@@ -37,6 +37,7 @@ use embassy_time::{
 mod config;
 mod slint_comp;
 mod event;
+mod algorithm;
 mod driver {
     pub mod st7789;
 }
@@ -54,8 +55,10 @@ static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 static EXECUTOR_KEY: InterruptExecutor = InterruptExecutor::new();
-static KEY_SIGAL: Signal<CriticalSectionRawMutex, KeyEvent> = Signal::new();
+static EXECUTOR_DISPLAY: InterruptExecutor = InterruptExecutor::new();
 
+static KEY_SIGAL: Signal<CriticalSectionRawMutex, KeyEvent> = Signal::new();
+static HEART_RATE_SIGAL: Signal<CriticalSectionRawMutex, i32> = Signal::new();
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -72,8 +75,10 @@ async fn main(spawner: Spawner) {
     executor_spawner.spawn(up_task(p.PF2, p.EXTI2)).ok();
     executor_spawner.spawn(press_task(p.PF1, p.EXTI1)).ok();
     executor_spawner.spawn(down_task(p.PF0, p.EXTI0)).ok();
-
-    spawner.spawn(display_task(
+    
+    unsafe { nvic.set_priority(Interrupt::UART5, 7 << 4); };
+    let executor_spawner = EXECUTOR_DISPLAY.start(Interrupt::UART5);
+    executor_spawner.spawn(display_task(
         p.SPI1,
         p.PA5,
         p.PA7,
@@ -83,6 +88,8 @@ async fn main(spawner: Spawner) {
         p.PF12,
         p.PF13
     )).ok();
+
+    spawner.spawn(max30102_task(p.I2C1,p.PB8,p.PB9)).ok();
 
     let mut led = Output::new(p.PB7, Level::Low, Speed::Low);
     loop {
@@ -164,6 +171,10 @@ async fn display_task(
                 }
             }
         }
+        if HEART_RATE_SIGAL.signaled() {
+            ui.set_heart_rate(HEART_RATE_SIGAL.wait().await as _);
+        }
+
         slint::platform::update_timers_and_animations();
         if window.draw_if_needed(|renderer| {
             renderer.render(&mut pixel_buffer, DISPLAY_WIDTH);
@@ -266,8 +277,64 @@ async fn press_task(key_pin: key::PRESS_PIN, key_exti: key::PRESS_EXTI) {
     }
 }
 
+#[embassy_executor::task]
+async fn max30102_task(
+    i2c_p: max30102_config::I2C,
+    scl_pin: max30102_config::SCL_PIN,
+    sda_pin: max30102_config::SDA_PIN,
+) {
+    use max3010x::Max3010x;
+
+    let irq = interrupt::take!(I2C1_EV);
+    let mut i2c = embassy_stm32::i2c::I2c::new(
+        i2c_p,
+        scl_pin,
+        sda_pin,
+        irq,
+        NoDma,
+        NoDma,
+        Hertz(400_000),
+        Default::default(),
+    );
+    let i2c = embassy_stm32::i2c::TimeoutI2c::new(&mut i2c, Duration::from_millis(1000));
+
+    let mut sensor = Max3010x::new_max30102(i2c);
+    
+    sensor.reset().ok();
+    Timer::after(Duration::from_millis(100)).await;
+
+    let mut sensor = sensor.into_heart_rate().unwrap();
+    
+    sensor.enable_fifo_rollover().unwrap();
+    sensor.set_pulse_amplitude(max3010x::Led::All, 15).unwrap();
+    sensor.set_sample_averaging(max3010x::SampleAveraging::Sa4).unwrap();
+    sensor.set_sampling_rate(max3010x::SamplingRate::Sps100).unwrap();
+    sensor.set_pulse_width(max3010x::LedPulseWidth::Pw411).unwrap();
+
+    sensor.clear_fifo().unwrap();
+    let mut datas = [0; 100];
+
+    loop {
+        Timer::after(Duration::from_millis(1000)).await;
+        let mut a = sensor.read_fifo(&mut datas[0..25]).unwrap();
+        Timer::after(Duration::from_millis(1000)).await;
+        a += sensor.read_fifo(&mut datas[25..50]).unwrap();
+        Timer::after(Duration::from_millis(1000)).await;
+        a += sensor.read_fifo(&mut datas[50..75]).unwrap();
+        Timer::after(Duration::from_millis(1000)).await;
+        a += sensor.read_fifo(&mut datas[75..100]).unwrap();
+        HEART_RATE_SIGAL.signal(algorithm::cal_heart_rate(&datas, a as _));
+        // HEART_RATE_SIGAL.signal(a as _);
+    }
+}
+
 
 #[interrupt]
 unsafe fn UART4() {
     EXECUTOR_KEY.on_interrupt()
+}
+
+#[interrupt]
+unsafe fn UART5() {
+    EXECUTOR_DISPLAY.on_interrupt()
 }

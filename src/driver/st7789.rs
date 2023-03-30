@@ -124,6 +124,7 @@ where
         
         self.spi.write(a_datas).await.ok();
         self.spi.write(b_datas).await.ok();
+        self.block_write_command(Instruction::NOP);
 
     }
     
