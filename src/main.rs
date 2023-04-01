@@ -90,6 +90,7 @@ async fn main(spawner: Spawner) {
     )).ok();
 
     spawner.spawn(max30102_task(p.I2C1,p.PB8,p.PB9)).ok();
+    spawner.spawn(mpu6050_task(p.I2C2,p.PB10,p.PB11)).ok();
 
     let mut led = Output::new(p.PB7, Level::Low, Speed::Low);
     loop {
@@ -325,6 +326,42 @@ async fn max30102_task(
         a += sensor.read_fifo(&mut datas[75..100]).unwrap();
         HEART_RATE_SIGAL.signal(algorithm::cal_heart_rate(&datas, a as _));
         // HEART_RATE_SIGAL.signal(a as _);
+    }
+}
+
+#[embassy_executor::task]
+async fn mpu6050_task(
+    i2c_p: mpu6050_config::I2C,
+    scl_pin: mpu6050_config::SCL_PIN,
+    sda_pin: mpu6050_config::SDA_PIN,
+) {
+    use mpu6050::Mpu6050;
+
+    let irq = interrupt::take!(I2C2_EV);
+    let mut i2c = embassy_stm32::i2c::I2c::new(
+        i2c_p,
+        scl_pin,
+        sda_pin,
+        irq,
+        NoDma,
+        NoDma,
+        Hertz(100_000),
+        Default::default(),
+    );
+    let i2c = embassy_stm32::i2c::TimeoutI2c::new(
+        &mut i2c,
+        Duration::from_millis(1000)
+    );
+
+    let mut sensor = Mpu6050::new(i2c);
+    sensor.init(&mut embassy_time::Delay).ok();
+
+    loop {
+        Timer::after(Duration::from_millis(1000)).await;
+        // let acc = sensor.get_acc().unwrap().data.0[0];
+        // let gyro = sensor.get_gyro().unwrap().data.0[0];
+        let temp = sensor.get_temp().unwrap();
+        HEART_RATE_SIGAL.signal((temp * 1000.0) as _);
     }
 }
 
